@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "cry_industry:block/machines/bonemealer"
+    },
+    "facing=south": {
+      "model": "cry_industry:block/machines/bonemealer",
+      "y" : 180
+    },
+    "facing=west": {
+      "model": "cry_industry:block/machines/bonemealer",
+      "y" : 90
+    },
+    "facing=east": {
+      "model": "cry_industry:block/machines/bonemealer",
+      "y" : 270
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "block/cube_bottom_top",
+  "textures": {
+    "top": "cry_industry:block/machine/bonemealer_side",
+    "bottom": "cry_industry:block/machine/bonemealer_side",
+    "side": "cry_industry:block/machine/bonemealer_side"
+  }
+}

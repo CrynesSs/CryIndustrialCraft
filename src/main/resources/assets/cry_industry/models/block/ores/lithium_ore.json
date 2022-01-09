@@ -1,0 +1,6 @@
+{
+  "parent": "block/cube_all",
+  "textures": {
+    "all" : "cry_industry:block/ores/lithium_ore"
+  }
+}

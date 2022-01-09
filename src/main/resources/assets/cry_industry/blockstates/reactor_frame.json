@@ -1,0 +1,7 @@
+{
+  "variants" : {
+    "" : {
+      "model" : "cry_industry:block/reactor/reactor_frame"
+    }
+  }
+}

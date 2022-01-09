@@ -1,0 +1,40 @@
+{
+  "xSizes": [
+    3
+  ],
+  "ySizes": [
+    3
+  ],
+  "zSizes": [
+    3
+  ],
+  "controllerAmount": 1,
+  "sizeMatching": true,
+  "isHollow": true,
+  "isFixedSize": true,
+  "controllerNeeded": true,
+  "controllerFixed": false,
+  "isRegular": true,
+  "structureName": "reactor",
+  "controllerName": "testController",
+  "config": {
+    "blocks": {
+      "frame": [
+        "u"
+      ],
+      "top": [
+        "u"
+      ],
+      "bottom": [
+        "u"
+      ],
+      "face": [
+        "x"
+      ]
+    },
+    "blockKeys": {
+      "x": "cry_industry:reactor_glass",
+      "u": "cry_industry:reactor_frame"
+    }
+  }
+}

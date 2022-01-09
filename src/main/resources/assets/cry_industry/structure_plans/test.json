@@ -1,0 +1,28 @@
+{
+  "xSizes": [3],
+  "ySizes": [3],
+  "zSizes": [3],
+  "controllerAmount": 1,
+  "sizeMatching": true,
+  "isHollow": true,
+  "isFixedSize": true,
+  "controllerNeeded": true,
+  "controllerFixed": true,
+  "isRegular" : true,
+  "structureName": "test",
+  "controllerName": "testController",
+  "config": {
+    "blocks": {
+      "frame" : ["u","v"],
+      "top" : ["o"],
+      "bottom" : ["x"],
+      "face" : ["x","o","v"]
+    },
+    "blockKeys": {
+      "x": "test1",
+      "u": "test2",
+      "v": "test3",
+      "o": "test5"
+    }
+  }
+}
