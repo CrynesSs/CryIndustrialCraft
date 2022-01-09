@@ -1,40 +1,38 @@
 {
-  "xSizes": [
-    3
-  ],
-  "ySizes": [
-    3
-  ],
-  "zSizes": [
-    3
-  ],
-  "controllerAmount": 1,
-  "sizeMatching": true,
-  "isHollow": true,
-  "isFixedSize": true,
-  "controllerNeeded": true,
-  "controllerFixed": false,
-  "isRegular": true,
-  "structureName": "reactor",
-  "controllerName": "testController",
-  "config": {
-    "blocks": {
-      "frame": [
-        "u"
-      ],
-      "top": [
-        "u"
-      ],
-      "bottom": [
-        "u"
-      ],
-      "face": [
-        "x"
-      ]
-    },
-    "blockKeys": {
-      "x": "cry_industry:reactor_glass",
-      "u": "cry_industry:reactor_frame"
-    }
+  "xSizes":[3],
+  "ySizes":[3],
+  "zSizes":[3],
+  "controllerAmount":1,
+  "sizeMatching":true,
+  "isHollow":true,
+  "isFixedSize":true,
+  "controllerNeeded":true,
+  "controllerFixed":false,
+  "isRegular":true,
+  "structureName":"reactor",
+  "structureClassName" : "com.example.MultiBlockStructure.Reactor",
+  "controllerName":"testController",
+  "config":{
+	"blocks":{
+	  "frame":["u"],
+	  "top":["u"],
+	  "bottom":["u"],
+	  "face":["x"]
+	},
+	"layers":{
+	  "0":[["u","u","u"],["u","u","u"],["u","u","u"]],
+	  "1":[["u","t","u"],["t","A","t"],["u","t","u"]],
+	  "2":[["u","u","u"],["u","A","u"],["u","u","u"]]
+	},
+	"blockKeys":{
+	  "x":"cry_industry:reactor_glass",
+	  "u":"cry_industry:reactor_frame"
+	},
+	"blockGroups" : {
+	  "t" : ["x","u"]
+	},
+	"states" : {
+
+	}
   }
 }

@@ -16,17 +16,24 @@ public class MultiBlockData {
     public boolean controllerNeeded;
     public boolean controllerFixed;
     public boolean isRegular;
+    public String structureClassName;
     public String structureName;
     public String controllerName;
     public transient StructureConfig config;
     public transient Class<?> structure;
 
+    /**
+     * @param dataObject   The Multiblock Data Object
+     * @param configObject The JSON used to generate the above Object
+     */
     public static void setStructureConfig(MultiBlockData dataObject, JsonObject configObject) {
         dataObject.config = new StructureConfig(configObject);
-        try {
-            dataObject.structure = Class.forName(dataObject.structureName);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+        if(dataObject.structureClassName != null){
+            try {
+                dataObject.structure = Class.forName(dataObject.structureClassName);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
         if (dataObject.structure != null) {
             return;
@@ -36,7 +43,7 @@ public class MultiBlockData {
                 dataObject.structure = Reactor.class;
             }
         }
-        System.out.println(dataObject.toString());
+        System.out.println(dataObject);
     }
 
     @Override

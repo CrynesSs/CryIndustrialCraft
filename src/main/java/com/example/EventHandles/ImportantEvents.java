@@ -1,7 +1,7 @@
 package com.example.EventHandles;
 
 import com.example.MultiBlockStructure.AbstractMBStructure;
-import com.example.Util.MultiBlocks.StructureChecks.MultiThreadStructureCheck;
+import com.example.Util.MultiBlocks.StructureChecks.StructureCheckMain;
 import com.example.Util.MultiBlocks.StructureSave;
 import com.example.examplemod.CryIndustry;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -18,7 +18,7 @@ public class ImportantEvents {
     @SubscribeEvent
     public static void onBlockPlaced(BlockEvent.EntityPlaceEvent event) {
         if (event.getEntity() instanceof ServerPlayerEntity) {
-            System.out.println("Structure check was : " + MultiThreadStructureCheck.checkStructure((World) event.getWorld(), event.getPos(), event.getPlacedBlock().getBlock()));
+            System.out.println("Structure check was : " + StructureCheckMain.checkStructure((World) event.getWorld(), event.getPos(), event.getPlacedBlock().getBlock()));
         }
     }
 

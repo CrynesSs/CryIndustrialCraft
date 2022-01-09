@@ -1,12 +1,16 @@
 package com.example.Util.MultiBlocks.StructureChecks;
 
+import com.example.MultiBlockStructure.AbstractMBStructure;
 import com.example.Util.MultiBlocks.MultiBlockData;
+import com.example.Util.MultiBlocks.MultiThread.MbCheckTask;
+import com.example.Util.MultiBlocks.StructureSave;
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class StructureCheckFixedSize {
@@ -20,14 +24,8 @@ public class StructureCheckFixedSize {
         //Define the Size of the Structure (in this Case there is only one possibility, making those checks insanely fast, even in the Worst Case scenario
         BlockPos size = new BlockPos(data.xSizes[0], data.ySizes[0], data.zSizes[0]);
         //removes every Pos that does not validate
-        posList.removeIf(k -> !validateFixedSize(k, world, data, size));
-        if (true) {
-            System.out.println("LOL");
-        }
-        if (posList.size() == 0) {
-            return;
-        } else if (posList.size() == 1) {
-            StructureCheck.spawnStructure(world, posList.stream().findFirst().get(), data, size);
+        if (posList.size() == 1) {
+            spawnStructure(world, posList.stream().findFirst().get(), data, size);
         } else {
             System.out.println("Someting went terrbily wrong");
         }
@@ -168,24 +166,62 @@ public class StructureCheckFixedSize {
      * @return
      */
     private static boolean checkBlockNames(List<String> blockNames, World w, BlockPos checkPos) {
+        AtomicReference<Block> posBlock = new AtomicReference<>();
+        //*Checks if the CurrentChunk is null
         if (currentChunk == null) {
-            currentChunk = (Chunk) w.getChunk(checkPos);
+            currentChunk = w.getChunkAt(checkPos);
             CHUNKS.add(currentChunk);
-            Block posBlock = currentChunk.getBlockState(checkPos).getBlock();
-            return blockNames.stream().noneMatch(s -> s.equals(posBlock.getRegistryName().toString()));
-        }
-        if (currentChunk.getPos().x == checkPos.getX() >> 4 && currentChunk.getPos().z == checkPos.getZ() >> 4) {
-            Block posBlock = currentChunk.getBlockState(checkPos).getBlock();
-            return blockNames.stream().noneMatch(s -> s.equals(posBlock.getRegistryName().toString()));
-        } else if (!CHUNKS.parallelStream().noneMatch(k -> (k.getPos().x == checkPos.getX() >> 4) && k.getPos().z == checkPos.getZ() >> 4)) {
-            currentChunk = CHUNKS.parallelStream().filter(k -> k.getPos().x == checkPos.getX() >> 4 && k.getPos().z == checkPos.getZ() >> 4).findFirst().get();
-            Block posBlock = currentChunk.getBlockState(checkPos).getBlock();
-            return blockNames.stream().noneMatch(s -> s.equals(posBlock.getRegistryName().toString()));
+            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
+            //*Checks if the currentChunk is the Chunk we currently Check in
+        } else if (currentChunk.getPos().x == checkPos.getX() >> 4 && currentChunk.getPos().z == checkPos.getZ() >> 4) {
+            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
+            //*Checks if we have the Chunk Cached
+        } else if (CHUNKS.parallelStream().anyMatch(k -> (k.getPos().x == checkPos.getX() >> 4) && k.getPos().z == checkPos.getZ() >> 4)) {
+            CHUNKS.parallelStream().filter(k -> k.getPos().x == checkPos.getX() >> 4 && k.getPos().z == checkPos.getZ() >> 4).findFirst().ifPresent(chunk -> {
+                currentChunk = chunk;
+                posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
+            });
+            //*We dont have the Chunk cached. Nor is the currentChunk null, so we need to get the Chunk from the World and save it.
         } else {
             currentChunk = (Chunk) w.getChunk(checkPos);
             CHUNKS.add(currentChunk);
-            Block posBlock = currentChunk.getBlockState(checkPos).getBlock();
-            return blockNames.stream().noneMatch(s -> s.equals(posBlock.getRegistryName().toString()));
+            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
         }
+        Block finalPosBlock = posBlock.get();
+        //*If the Block we try to check here is null, that means it is unloaded, which is an illegal State
+        if (finalPosBlock == null) {
+            throw new IllegalStateException("Posblock is null.Expected a Block to never be null");
+        }
+        //*Return true if none of the Names match
+        return blockNames.stream().noneMatch(s -> s.equals(finalPosBlock.getRegistryName().toString()));
+    }
+    public static void spawnStructure(World world, BlockPos pos, MultiBlockData data, BlockPos size) {
+        AbstractMBStructure structure;
+        try {
+            structure = (AbstractMBStructure) data.structure.newInstance();
+            structure.setCorner(pos);
+            structure.setSize(size);
+            structure.setBlocksValid(world);
+            if (structure.hasBlockEntity()) {
+                structure.setTileIntoWorld(world, pos);
+            }
+        } catch (IllegalAccessException | InstantiationException e) {
+            e.printStackTrace();
+            throw new NullPointerException("Structure is Null");
+        }
+        StructureSave.STRUCTURES.add(structure);
+    }
+    public static boolean computeIfValid(MultiBlockData data, BlockPos corner, World world, BlockPos size) {
+        MbCheckTask BOTTOM = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.BOTTOM, size);
+        MbCheckTask TOP = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.TOP, size);
+        MbCheckTask FRAME = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.FRAME, size);
+        MbCheckTask INSIDE = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.INSIDE, size);
+        MbCheckTask SIDE = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.SIDE, size);
+        try {
+            return BOTTOM.call() && TOP.call() && FRAME.call() && SIDE.call() && INSIDE.call();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

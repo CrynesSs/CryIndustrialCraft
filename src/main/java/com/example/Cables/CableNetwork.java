@@ -14,15 +14,21 @@ public class CableNetwork {
     public void tick() {
 
     }
+
     public int canReceiveEnergy(int energyToReceive) {
-
+        //TODO IMPLEMENT
+        return 0;
     }
+
     public int receiveEnergy(int energyToReceive) {
-
+        //TODO IMPLEMENT
+        return 0;
     }
+
     public void distributeEnergy(HashMap<IEnergyStorage, Integer> amounts) {
 
     }
+
     public boolean canReceive() {
         return CONSUMERS.parallelStream().anyMatch(IEnergyStorage::canReceive);
     }

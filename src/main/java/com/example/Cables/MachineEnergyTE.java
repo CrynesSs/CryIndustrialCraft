@@ -1,5 +1,6 @@
 package com.example.Cables;
 
+import com.example.Inits.TileEntityTypes;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityType;
 import net.minecraft.util.Direction;
@@ -23,12 +24,12 @@ public class MachineEnergyTE extends TileEntity {
     private CableNetwork network;
 
     public MachineEnergyTE() {
-        super(type);
+        super(TileEntityTypes.MACHINE_INTERFACE_TE.get());
         MACHINEDIRECTION = null;
     }
 
     public MachineEnergyTE(Set<Direction> directions) {
-        super(type);
+        super(TileEntityTypes.MACHINE_INTERFACE_TE.get());
         MACHINEDIRECTION = directions;
     }
 

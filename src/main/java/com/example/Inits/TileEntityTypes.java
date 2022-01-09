@@ -1,5 +1,6 @@
 package com.example.Inits;
 
+import com.example.Cables.MachineEnergyTE;
 import com.example.Machines.BoneMealer.BoneMealerTE;
 import com.example.Machines.Planter.PlanterTE;
 import com.example.Machines.WoodCutter.WoodCutterTE;
@@ -20,7 +21,7 @@ public class TileEntityTypes {
     public static final RegistryObject<TileEntityType<WoodCutterTE>> WOODCUTTER_TE = TILE_ENTITY_TYPES.register("woodcutter",()->TileEntityType.Builder.of(WoodCutterTE::new,BlockInit.WOODCUTTER.get()).build(null));
     public static final RegistryObject<TileEntityType<BoneMealerTE>> BONEMEALER_TE = TILE_ENTITY_TYPES.register("bonemealer",()->TileEntityType.Builder.of(BoneMealerTE::new,BlockInit.BONEMEALER_BLOCK.get()).build(null));
    // public static final RegistryObject<TileEntityType<ReactorTE>> ABSTRACT_MBF_TE = TILE_ENTITY_TYPES.register("mbf",()->TileEntityType.Builder.of(ReactorTE::new,BlockInit.REACTOR_FRAME.get()).build(null));
-
+    public static final RegistryObject<TileEntityType<MachineEnergyTE>> MACHINE_INTERFACE_TE = TILE_ENTITY_TYPES.register("machine_energy_interface",()->TileEntityType.Builder.of(MachineEnergyTE::new,BlockInit.MACHINE_ENERGY_INTERFACE.get()).build(null));
 
 
 }
