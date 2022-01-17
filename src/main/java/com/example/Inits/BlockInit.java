@@ -7,6 +7,7 @@ import com.example.Machines.WoodCutter.WoodCutterBlock;
 import com.example.Ores.CopperOre;
 import com.example.Ores.LithiumOre;
 import com.example.Ores.ZinkOre;
+import com.example.ReactorCraft.Blocks.ReactorController;
 import com.example.ReactorCraft.Blocks.ReactorFrame;
 import com.example.ReactorCraft.Blocks.ReactorGlass;
 import com.example.examplemod.CryIndustry;
@@ -27,7 +28,8 @@ public class BlockInit {
     //Reactor
     public static final RegistryObject<Block> REACTOR_GLASS = BLOCKS.register("reactor_glass", ReactorGlass::new);
     public static final RegistryObject<Block> REACTOR_FRAME = BLOCKS.register("reactor_frame", ReactorFrame::new);
-    public static final RegistryObject<MachineEnergyInterface> MACHINE_ENERGY_INTERFACE = BLOCKS.register("machine_energy_interface",MachineEnergyInterface::new);
+    public static final RegistryObject<Block> REACTOR_CONTROLLER = BLOCKS.register("reactor_controller", ReactorController::new);
+    public static final RegistryObject<MachineEnergyInterface> MACHINE_ENERGY_INTERFACE = BLOCKS.register("machine_energy_interface", MachineEnergyInterface::new);
     //ORES
     public static final RegistryObject<OreBlock> ORE_LITHIUM = BLOCKS.register("lithium_ore", LithiumOre::new);
     public static final RegistryObject<OreBlock> ORE_ZINC = BLOCKS.register("zinc_ore", ZinkOre::new);

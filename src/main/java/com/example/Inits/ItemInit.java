@@ -18,6 +18,9 @@ public class ItemInit {
     public static final RegistryObject<Item> WOODCUTTER_ITEM = ITEMS.register("woodcutter", () -> new BlockItem(BlockInit.WOODCUTTER.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));
     public static final RegistryObject<Item> BONEMEALER_ITEM = ITEMS.register("bonemealer", () -> new BlockItem(BlockInit.BONEMEALER_BLOCK.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));
 
+    //Ores
+    public static final RegistryObject<BlockItem> LITHIUM_ORE_ITEM = ITEMS.register("lithium_ore", () -> new BlockItem(BlockInit.ORE_LITHIUM.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));
+    public static final RegistryObject<BlockItem> ZINK_ORE_ITEM = ITEMS.register("zink_ore", () -> new BlockItem(BlockInit.ORE_ZINC.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));
     //ReactorItems
     public static final RegistryObject<Item> REACTOR_GLASS = ITEMS.register("reactor_glass", () -> new BlockItem(BlockInit.REACTOR_GLASS.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));
     public static final RegistryObject<Item> REACTOR_FRAME = ITEMS.register("reactor_frame", () -> new BlockItem(BlockInit.REACTOR_FRAME.get(), new Item.Properties().tab(ItemGroups.MASCHINES)));

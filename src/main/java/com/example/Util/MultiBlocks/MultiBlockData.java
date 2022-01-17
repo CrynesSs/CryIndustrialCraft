@@ -1,6 +1,6 @@
 package com.example.Util.MultiBlocks;
 
-import com.example.MultiBlockStructure.Reactor;
+import com.example.MultiBlockStructure.ReactorStructure.Reactor;
 import com.google.gson.JsonObject;
 
 import java.util.Arrays;

@@ -1,22 +1,23 @@
 package com.example.Util.MultiBlocks.MultiThread;
 
 import com.example.Util.MultiBlocks.MultiBlockData;
-import com.example.Util.MultiBlocks.StructureChecks.StructureCheckFixedSize;
+import com.example.Util.MultiBlocks.StructureChecks.StructureCheckMain;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 public class MbCheckTask implements Callable<Boolean> {
-    private MultiBlockData data;
-    private BlockPos corner;
-    private World w;
-    private ECalculationStep step;
-    private BlockPos size;
+    private final MultiBlockData data;
+    private final BlockPos corner;
+    private final World w;
+    private final ECalculationStep step;
+    private final BlockPos size;
 
     public MbCheckTask(MultiBlockData data, BlockPos corner, World world, ECalculationStep step, BlockPos size) {
         this.data = data;
@@ -26,91 +27,64 @@ public class MbCheckTask implements Callable<Boolean> {
         this.size = size;
     }
 
-
-    public ECalculationStep getStep() {
-        return step;
-    }
-
     @Override
-    public Boolean call() throws Exception {
+    public Boolean call() {
         System.out.println("I am checking something i guess at " + step);
         BlockPos diagonalBlock = corner.offset(size.getX() - 1, 0, size.getZ() - 1);
+        List<String> blockNames = Arrays.stream(data.config.BLOCKS.get(step.name)).map(k -> data.config.getBlocknameByKey(k)).collect(Collectors.toList());
+        blockNames = addBlockGroupNames(blockNames, step).stream().distinct().filter(Objects::nonNull).collect(Collectors.toList());
         switch (step) {
             case FRAME: {
-                List<String> blockNamesFrame = Arrays.stream(data.config.BLOCKS.get("frame")).map(k -> data.config.getBlocknameByKey(k)).collect(Collectors.toList());
-                if (data.isRegular && data.isFixedSize) {
-                    return (StructureCheckFixedSize.validateFixedSizeFrame(corner, w, data, size, blockNamesFrame, diagonalBlock));
-
-                }
-                break;
+                return StructureCheckMain.validateFixedSizeFrame(corner, w, data, size, blockNames, diagonalBlock);
             }
             case TOP: {
-                List<String> blockNamesTop = Arrays.stream(data.config.BLOCKS.get("top")).map(k -> data.config.getBlocknameByKey(k)).collect(Collectors.toList());
-                if (data.isFixedSize && data.isRegular) {
-                    return (StructureCheckFixedSize.validateTopFixedSize(corner, w, data, size, blockNamesTop, diagonalBlock));
-
-                }
-                break;
+                return StructureCheckMain.validateTopFixedSize(corner, w, data, size, blockNames, diagonalBlock);
             }
             case BOTTOM: {
-                List<String> blockNamesBottom = Arrays.stream(data.config.BLOCKS.get("bottom")).map(k -> data.config.getBlocknameByKey(k)).collect(Collectors.toList());
-                if (data.isFixedSize && data.isRegular) {
-                    return (StructureCheckFixedSize.validateBottomFixedSize(corner, w, data, size, blockNamesBottom, diagonalBlock));
-
-                }
-                break;
+                return StructureCheckMain.validateBottomFixedSize(corner, w, data, size, blockNames, diagonalBlock);
             }
             case SIDE: {
-                List<String> blockNamesFaces = Arrays.stream(data.config.BLOCKS.get("face")).map(k -> data.config.getBlocknameByKey(k)).collect(Collectors.toList());
-                if (data.isFixedSize && data.isRegular) {
-                    return (StructureCheckFixedSize.validateFacesFixedSize(corner, w, data, size, blockNamesFaces, diagonalBlock));
-
-                }
-                break;
+                return StructureCheckMain.validateFacesFixedSize(corner, w, data, size, blockNames, diagonalBlock);
             }
             case INSIDE: {
                 List<String> blockNamesInside = new ArrayList<>();
                 if (data.isHollow) {
                     blockNamesInside.add("minecraft:air");
                 }
-                return (StructureCheckFixedSize.validateInsideFixedSize(corner, w, data, size, blockNamesInside, diagonalBlock));
-
+                return (StructureCheckMain.validateInsideFixedSize(corner, w, data, size, blockNamesInside, diagonalBlock));
             }
         }
         return false;
     }
 
+    public List<String> addBlockGroupNames(List<String> currentBlockNames, ECalculationStep step) {
+        if (Arrays.stream(data.config.BLOCKS.get(step.name)).anyMatch(data.config.BLOCKGROUPS.keySet()::contains)) {
+            //*First we get the Data from the Blocks Map and stream the Data we received
+            currentBlockNames.addAll(Arrays.stream(data.config.BLOCKS.get(step.name))
+                    //*Filtering for any BlockGroup keys
+                    .filter(data.config.BLOCKGROUPS.keySet()::contains)
+                    //*Get the BlockGroups as String[]
+                    .map(data.config.BLOCKGROUPS::get)
+                    //*Flatmap the arrays into a single Stream<String>
+                    .flatMap(Arrays::stream)
+                    //*Map the Strings into usable BlockNames
+                    .map(s -> data.config.getBlocknameByKey(s))
+                    //*Collect into a List to add to the other List
+                    .collect(Collectors.toList()));
+        }
+        return currentBlockNames;
+    }
+
     public enum ECalculationStep {
-        TOP,
-        BOTTOM,
-        FRAME,
-        SIDE,
-        INSIDE;
+        TOP("top"),
+        BOTTOM("bottom"),
+        FRAME("frame"),
+        SIDE("side"),
+        INSIDE("inside");
+        public final String name;
+
+        ECalculationStep(String name) {
+            this.name = name;
+        }
     }
-
-
-    public MbCheckTask setData(MultiBlockData data) {
-        this.data = data;
-        return this;
-    }
-
-    public MbCheckTask setCorner(BlockPos corner) {
-        this.corner = corner;
-        return this;
-    }
-
-    public MbCheckTask setW(World w) {
-        this.w = w;
-        return this;
-    }
-
-    public MbCheckTask setSize(BlockPos size) {
-        this.size = size;
-        return this;
-    }
-
-
-
-
-
 }

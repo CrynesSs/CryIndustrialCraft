@@ -6,6 +6,7 @@ import com.example.Util.MultiBlocks.StructureSave;
 import com.example.examplemod.CryIndustry;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -24,9 +25,12 @@ public class ImportantEvents {
 
     @SubscribeEvent
     public static void onBlockBreak(BlockEvent.BreakEvent event) {
-        List<AbstractMBStructure> structureList = StructureSave.STRUCTURES.parallelStream().filter(structure -> structure.isBlockInStructure(event.getPos())).collect(Collectors.toList());
+        if (!(event.getWorld() instanceof ServerWorld)) return;
+        StructureSave save = StructureSave.getData((ServerWorld) event.getWorld());
+        List<AbstractMBStructure> structureList = save.STRUCTURES.parallelStream().filter(structure -> structure.isBlockInStructure(event.getPos())).collect(Collectors.toList());
         if (structureList.size() > 0) {
             structureList.stream().findFirst().ifPresent(structure -> structure.invalidate((World) event.getWorld()));
+            save.STRUCTURES.remove(structureList.stream().findFirst().get());
         }
     }
 }
