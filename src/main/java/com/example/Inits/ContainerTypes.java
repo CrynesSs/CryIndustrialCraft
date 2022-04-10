@@ -3,6 +3,7 @@ package com.example.Inits;
 import com.example.Machines.BoneMealer.BoneMealerContainer;
 import com.example.Machines.Planter.PlanterContainer;
 import com.example.Machines.WoodCutter.WoodCutterContainer;
+import com.example.MultiBlockStructure.ReactorStructure.ReactorContainer;
 import com.example.examplemod.CryIndustry;
 import net.minecraft.inventory.container.ContainerType;
 import net.minecraftforge.common.extensions.IForgeContainerType;
@@ -20,4 +21,6 @@ public class ContainerTypes {
 
     public static final RegistryObject<ContainerType<BoneMealerContainer>> BONEMEALER_CONTAINER = CONTAINER_TYPES.register("bonemealer",
             () -> IForgeContainerType.create(BoneMealerContainer::getClientContainer));
+    public static final RegistryObject<ContainerType<ReactorContainer>> REACTOR_CONTAINER = CONTAINER_TYPES.register("reactor",
+            () -> IForgeContainerType.create(ReactorContainer::getClientContainer));
 }

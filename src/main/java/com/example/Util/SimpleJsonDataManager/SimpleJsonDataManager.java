@@ -5,14 +5,18 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import net.minecraft.client.resources.JsonReloadListener;
 import net.minecraft.profiler.IProfiler;
 import net.minecraft.resources.IResourceManager;
 import net.minecraft.util.ResourceLocation;
 
+import javax.annotation.Nonnull;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class SimpleJsonDataManager<T> extends JsonReloadListener {
     private static final Gson GSON = new GsonBuilder().create();
@@ -42,11 +46,6 @@ public class SimpleJsonDataManager<T> extends JsonReloadListener {
     }
 
     /**
-     * Called on resource reload, the jsons have already been found for us and we just need to parse them in here
-     **/
-
-
-    /**
      * Use a json object (presumably one from an assets/modid/mondobooks folder) to generate a data object
      **/
     protected T getJsonAsData(JsonObject json) {
@@ -70,7 +69,7 @@ public class SimpleJsonDataManager<T> extends JsonReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> jsons, IResourceManager resourceManagerIn, IProfiler profilerIn) {
+    protected void apply(Map<ResourceLocation, JsonElement> jsons, @Nonnull IResourceManager resourceManagerIn, @Nonnull IProfiler profilerIn) {
         Map<ResourceLocation, JsonObject> objectMap = new HashMap<>();
         jsons.entrySet().parallelStream().forEach(k -> {
             if (k.getValue().isJsonObject()) {
@@ -81,7 +80,7 @@ public class SimpleJsonDataManager<T> extends JsonReloadListener {
         this.data = SimpleJsonDataManager.mapValues(objectMap, this::getJsonAsData);
         if (this.dataClass.equals(MultiBlockData.class)) {
             this.data.forEach((k, v) -> {
-                if (v.getClass().equals(MultiBlockData.class) && jsons.get(k).isJsonObject()) {
+                if (jsons.get(k).isJsonObject()) {
                     MultiBlockData.setStructureConfig((MultiBlockData) v, jsons.get(k).getAsJsonObject().getAsJsonObject("config"));
                 }
             });

@@ -16,7 +16,7 @@
       "frame" : ["u","v"],
       "top" : ["o"],
       "bottom" : ["x"],
-      "face" : ["x","o","v"]
+      "side" : ["x","o","v"]
     },
     "blockKeys": {
       "x": "test1",

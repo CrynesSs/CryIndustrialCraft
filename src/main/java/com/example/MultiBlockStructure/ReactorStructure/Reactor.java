@@ -1,16 +1,20 @@
 package com.example.MultiBlockStructure.ReactorStructure;
 
 import com.example.Inits.BlockInit;
-import com.example.Inits.TileEntityTypes;
 import com.example.MultiBlockStructure.AbstractMBStructure;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.inventory.container.IContainerProvider;
+import net.minecraft.inventory.container.INamedContainerProvider;
+import net.minecraft.inventory.container.SimpleNamedContainerProvider;
+import net.minecraft.stats.Stats;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.network.NetworkHooks;
 
 public class Reactor extends AbstractMBStructure {
 
@@ -25,17 +29,16 @@ public class Reactor extends AbstractMBStructure {
         }
         System.out.println("Interacted with Reactor");
         ReactorTE te = getTileEntity(worldIn);
+        IContainerProvider provider = ReactorContainer.getServerContainerProvider(te, pos);
+        INamedContainerProvider namedProvider = new SimpleNamedContainerProvider(provider, ReactorContainer.TITLE);
+        NetworkHooks.openGui((ServerPlayerEntity) player, namedProvider);
+        player.awardStat(Stats.INTERACT_WITH_FURNACE);
         return ActionResultType.SUCCESS;
     }
 
     @Override
     public boolean hasBlockEntity() {
         return true;
-    }
-
-    @Override
-    public TileEntity createBlockEntity(AbstractMBStructure structure) {
-        return new ReactorTE((Reactor) structure);
     }
 
     public ReactorTE getTileEntity(World world) {

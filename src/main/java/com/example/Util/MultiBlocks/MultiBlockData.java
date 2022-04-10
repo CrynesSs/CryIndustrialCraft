@@ -2,8 +2,10 @@ package com.example.Util.MultiBlocks;
 
 import com.example.MultiBlockStructure.ReactorStructure.Reactor;
 import com.google.gson.JsonObject;
+import net.minecraft.util.ResourceLocation;
 
 import java.util.Arrays;
+import java.util.Map;
 
 public class MultiBlockData {
     public int[] xSizes;
@@ -41,6 +43,10 @@ public class MultiBlockData {
         switch (dataObject.structureName) {
             case "reactor": {
                 dataObject.structure = Reactor.class;
+                break;
+            }
+            case "fission_reactor" : {
+
             }
         }
         System.out.println(dataObject);
@@ -63,4 +69,5 @@ public class MultiBlockData {
                 ", config=" + config.toString() +
                 '}';
     }
+
 }

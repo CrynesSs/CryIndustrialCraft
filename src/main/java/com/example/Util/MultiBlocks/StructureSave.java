@@ -32,7 +32,7 @@ public class StructureSave extends WorldSavedData {
     }
 
     @Override
-    public void load(CompoundNBT nbt) {
+    public void load(@Nonnull CompoundNBT nbt) {
         int i = 0;
         while (nbt.contains("s" + i)) {
             STRUCTURES.add(AbstractMBStructure.deserialize(nbt.getCompound("s" + i)));

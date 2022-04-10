@@ -14,9 +14,11 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockRayTraceResult;
 import net.minecraft.world.IBlockReader;
+import net.minecraft.world.IWorldReader;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.network.NetworkHooks;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class BoneMealerBlock extends AbstractMachine {
@@ -24,8 +26,10 @@ public class BoneMealerBlock extends AbstractMachine {
         super();
     }
 
+    @Nonnull
     @Override
-    public ActionResultType use(BlockState p_225533_1_, World world, BlockPos pos, PlayerEntity player, Hand p_225533_5_, BlockRayTraceResult p_225533_6_) {
+    @SuppressWarnings("deprecation")
+    public ActionResultType use(@Nonnull BlockState state, @Nonnull World world, @Nonnull BlockPos pos, @Nonnull PlayerEntity player, @Nonnull Hand hand, @Nonnull BlockRayTraceResult hit) {
         TileEntity tile = world.getBlockEntity(pos);
         if (tile instanceof BoneMealerTE && player instanceof ServerPlayerEntity) {
             BoneMealerTE te = (BoneMealerTE) tile;
@@ -37,9 +41,6 @@ public class BoneMealerBlock extends AbstractMachine {
         }
         return ActionResultType.SUCCESS;
     }
-
-
-
     @Override
     public boolean hasTileEntity(BlockState state) {
         return true;

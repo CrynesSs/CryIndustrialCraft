@@ -1,24 +1,52 @@
 package com.example.Util.MultiBlocks;
 
-import com.google.gson.*;
-import jdk.nashorn.internal.runtime.regexp.joni.exception.ValueException;
+import com.example.Util.MultiBlocks.StructureChecks.StructureCheckMain;
+import com.google.common.collect.ImmutableList;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import net.minecraft.block.Block;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class StructureConfig {
 
-    public final Map<String, String[]> BLOCKS = new HashMap<>();
-    public Map<String, String> BLOCKKEYS = new HashMap<>();
-    public final Map<String, String[]> BLOCKGROUPS = new HashMap<>();
-    public final Map<Integer, String[][]> BLOCKS_BY_LAYER = new HashMap<>();
+    public final Map<StructureCheckMain.ECalculationStep, List<String>> BLOCKS = new ConcurrentHashMap<>();
+    public Map<String, String> BLOCKKEYS = new ConcurrentHashMap<>();
+    public final Map<String, List<String>> BLOCKGROUPS = new ConcurrentHashMap<>();
+    public final Map<Integer, String[][]> BLOCKS_BY_LAYER = new ConcurrentHashMap<>();
 
     public static final Gson gson = new Gson();
 
     public String getBlocknameByKey(String key) {
+        if (key.equals("A")) {
+            return "minecraft:air";
+        }
         return BLOCKKEYS.get(key);
     }
 
+    /**
+     *
+     * @param step The calculatingstep we are currently on
+     * @return A List containing all valid {@link Block} for the Step
+     */
+    public List<Block> getBlocknamesByStep(StructureCheckMain.ECalculationStep step){
+        return Stream.concat(BLOCKS.get(step).stream().filter(BLOCKGROUPS::containsKey).map(BLOCKGROUPS::get).flatMap(List::stream),BLOCKS.get(step).stream().filter(s -> !BLOCKGROUPS.containsKey(s))).distinct().map(this::getBlocknameByKey).map((s)->ForgeRegistries.BLOCKS.getValue(new ResourceLocation(s))).collect(Collectors.toList());
+    }
+    public List<String> getBlockKeys(String blockGroupName){
+        return BLOCKGROUPS.get(blockGroupName);
+    }
+    public List<Block> getBlockNamesAsBlocks(){
+        return BLOCKKEYS.values().parallelStream().map(s -> ForgeRegistries.BLOCKS.getValue(new ResourceLocation(s))).collect(Collectors.toList());
+    }
     @Override
     public String toString() {
         return "StructureConfig{" +
@@ -65,81 +93,28 @@ public class StructureConfig {
             //*Separate Method to serialize, as it improves readability by a mile
             setBLOCKGROUPS(data.getAsJsonObject("blockGroups"));
         }
+        if(data.has("states")){
+            //TODO implement States
+        }
     }
 
     private void setBLOCKS_BY_LAYER(JsonObject layers) {
-        layers.entrySet().forEach(entry -> {
-            if(BLOCKS_BY_LAYER.keySet().parallelStream().anyMatch(k->k.equals(Integer.parseInt(entry.getKey())))){
-                throw new JsonParseException("Duplicate Key in Layers");
-            }
-            BLOCKS_BY_LAYER.put(Integer.parseInt(entry.getKey()), gson.fromJson(entry.getValue(), String[][].class));
-        });
+        layers.entrySet().parallelStream().forEach(entry -> BLOCKS_BY_LAYER.computeIfAbsent(Integer.parseInt(entry.getKey()), (key) -> gson.fromJson(entry.getValue(), String[][].class)));
     }
 
     private void setBLOCKGROUPS(JsonObject blockgroups) {
-        blockgroups.entrySet().parallelStream().forEach(element -> {
-            if (BLOCKGROUPS.keySet().parallelStream().anyMatch(key -> key.equals(element.getKey()))) {
-                throw new ValueException("Duplicate Key Value in BLOCKGROUPS");
-            }
-            if (!element.getValue().isJsonArray())
-                throw new JsonParseException("Invalid Array found while parsing BLOCKGROUPS");
-            String[] BLOCKKEYS = gson.fromJson(element.getValue(), String[].class);
-            BLOCKGROUPS.put(element.getKey(), BLOCKKEYS);
-        });
+        blockgroups.entrySet().parallelStream().forEach(element -> BLOCKGROUPS.computeIfAbsent(element.getKey(), key -> ImmutableList.copyOf(gson.fromJson(element.getValue(), String[].class))));
     }
 
     private void setBLOCKKEYS(JsonObject blockKeys) {
-        HashMap<String, String> tempMap = new HashMap<>();
-        blockKeys.getAsJsonObject().entrySet().parallelStream().forEach(e -> {
-            if (BLOCKKEYS.keySet().parallelStream().anyMatch(k -> k.equals(e.getKey()))) {
-                throw new ValueException("Duplicate Block Key Value");
-            }
-            tempMap.put(e.getKey(), e.getValue().getAsString());
-        });
-        BLOCKKEYS = tempMap;
+        blockKeys.entrySet().parallelStream().forEach(element -> BLOCKKEYS.computeIfAbsent(element.getKey(), key -> gson.fromJson(element.getValue(), String.class)));
     }
 
 
     private void setBLOCKS(JsonObject blockObject) {
-        if (blockObject.has("frame")) {
-            JsonArray arr = blockObject.getAsJsonArray("frame");
-            String[] strings = new String[arr.size()];
-            AtomicInteger i = new AtomicInteger(0);
-            arr.forEach(k -> {
-                strings[i.get()] = k.getAsString();
-                i.getAndIncrement();
-            });
-            BLOCKS.put("frame", strings);
-        }
-        if (blockObject.has("top")) {
-            JsonArray arr = blockObject.getAsJsonArray("top");
-            String[] strings = new String[arr.size()];
-            AtomicInteger i = new AtomicInteger(0);
-            arr.forEach(k -> {
-                strings[i.get()] = k.getAsString();
-                i.getAndIncrement();
-            });
-            BLOCKS.put("top", strings);
-        }
-        if (blockObject.has("bottom")) {
-            JsonArray arr = blockObject.getAsJsonArray("bottom");
-            String[] strings = new String[arr.size()];
-            AtomicInteger i = new AtomicInteger(0);
-            arr.forEach(k -> {
-                strings[i.get()] = k.getAsString();
-                i.getAndIncrement();
-            });
-            BLOCKS.put("bottom", strings);
-        }
-        if (blockObject.has("face")) {
-            JsonArray arr = blockObject.getAsJsonArray("face");
-            String[] strings = new String[arr.size()];
-            AtomicInteger i = new AtomicInteger(0);
-            arr.forEach(k -> {
-                strings[i.get()] = k.getAsString();
-                i.getAndIncrement();
-            });
-            BLOCKS.put("face", strings);
+        blockObject.entrySet().parallelStream().forEach(entry -> BLOCKS.put(StructureCheckMain.ECalculationStep.valueOf(entry.getKey().toUpperCase(Locale.ROOT)), ImmutableList.copyOf(gson.fromJson(entry.getValue(), String[].class))));
+        if (!blockObject.has("inside")) {
+            BLOCKS.put(StructureCheckMain.ECalculationStep.INSIDE, ImmutableList.of("A"));
         }
     }
 }

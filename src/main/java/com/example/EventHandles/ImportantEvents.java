@@ -19,7 +19,7 @@ public class ImportantEvents {
     @SubscribeEvent
     public static void onBlockPlaced(BlockEvent.EntityPlaceEvent event) {
         if (event.getEntity() instanceof ServerPlayerEntity) {
-            System.out.println("Structure check was : " + StructureCheckMain.checkStructure((World) event.getWorld(), event.getPos(), event.getPlacedBlock().getBlock()));
+            System.out.println("Structure check was : " + StructureCheckMain.checkStructure((ServerWorld) event.getWorld(), event.getPos(), event.getPlacedBlock().getBlock()));
         }
     }
 

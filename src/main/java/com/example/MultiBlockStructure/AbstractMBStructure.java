@@ -116,6 +116,9 @@ public abstract class AbstractMBStructure implements TileEntityMB {
         if (this.hasBlockEntity()) {
             if (world.getBlockEntity(corner) != null) {
                 world.removeBlockEntity(corner);
+                if (world.getBlockState(corner).hasProperty(MultiBlockSuper.isCorner)) {
+                    world.setBlock(corner, world.getBlockState(corner).setValue(MultiBlockSuper.isCorner, false), 3);
+                }
             }
         }
         isRemoved = true;

@@ -4,6 +4,7 @@ import com.example.Inits.ContainerTypes;
 import com.example.Machines.BoneMealer.BoneMealerScreen;
 import com.example.Machines.Planter.PlanterScreen;
 import com.example.Machines.WoodCutter.WoodCutterScreen;
+import com.example.MultiBlockStructure.ReactorStructure.ReactorScreen;
 import com.example.examplemod.CryIndustry;
 import net.minecraft.client.gui.ScreenManager;
 import net.minecraft.client.renderer.texture.AtlasTexture;
@@ -25,13 +26,14 @@ public class ClientEvents {
         ScreenManager.register(ContainerTypes.PLANTER_CONTAINER.get(), PlanterScreen::new);
         ScreenManager.register(ContainerTypes.WOODCUTTER_CONTAINER.get(), WoodCutterScreen::new);
         ScreenManager.register(ContainerTypes.BONEMEALER_CONTAINER.get(), BoneMealerScreen::new);
+        ScreenManager.register(ContainerTypes.REACTOR_CONTAINER.get(), ReactorScreen::new);
     }
 
     @SubscribeEvent
     public static void onTextureStitch(TextureStitchEvent.Pre event) {
-        if (!event.getMap().location().equals(AtlasTexture.LOCATION_BLOCKS)) {
-            return;
-        }
-        event.addSprite(new ResourceLocation(CryIndustry.MOD_ID, "block/double_slab"));
+        //if (!event.getMap().location().equals(AtlasTexture.LOCATION_BLOCKS)) {
+
+        //}
+        //event.addSprite(new ResourceLocation(CryIndustry.MOD_ID, "block/double_slab"));
     }
 }

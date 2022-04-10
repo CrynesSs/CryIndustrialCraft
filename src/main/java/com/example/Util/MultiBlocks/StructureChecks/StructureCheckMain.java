@@ -1,11 +1,11 @@
 package com.example.Util.MultiBlocks.StructureChecks;
 
 import com.example.MultiBlockStructure.AbstractMBStructure;
+import com.example.MultiBlockStructure.MultiBlockSuper;
 import com.example.Util.MultiBlocks.MultiBlockData;
-import com.example.Util.MultiBlocks.MultiThread.MbCheckTask;
+import com.example.Util.MultiBlocks.StructureConfig;
 import com.example.Util.MultiBlocks.StructureSave;
 import com.example.Util.SimpleJsonDataManager.DataManager;
-import com.mojang.datafixers.util.Pair;
 import net.minecraft.block.Block;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -14,14 +14,22 @@ import net.minecraft.world.server.ServerWorld;
 
 import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class StructureCheckMain {
 
-    public static boolean checkStructure(World w, BlockPos pos, Block placedBlock) {
+    /**
+     * Main method to check if a given placedBlock is generating a valid structure.
+     *
+     * @param w           The World the Block was placed in
+     * @param pos         The Position the Block was placed in.
+     * @param placedBlock The Placed {@link Block}
+     * @return True if the block completes a valid structure
+     */
+    public static boolean checkStructure(ServerWorld w, BlockPos pos, Block placedBlock) {
         List<MultiBlockData> multiBlockDataList = new ArrayList<>(DataManager.MULTI_BLOCK_DATA.getAllData().values());
         multiBlockDataList = multiBlockDataList.parallelStream().filter(k -> k.config.BLOCKKEYS.values().parallelStream().anyMatch(l -> l.equals(Objects.requireNonNull(placedBlock.getBlock().getRegistryName()).toString()))).collect(Collectors.toList());
         if (multiBlockDataList.isEmpty()) {
@@ -37,8 +45,8 @@ public class StructureCheckMain {
                 if (cornersFixedSize.isEmpty()) return false;
 
                 for (BlockPos corner : cornersFixedSize) {
-                    if (computeIfValid(data, corner, w, size)) {
-                        spawnStructure(w, corner, data, size);
+                    if (computeIfValid(w, data, corner, size)) {
+                        spawnStructure(w, data, corner, size);
                         return true;
                     }
                 }
@@ -52,13 +60,14 @@ public class StructureCheckMain {
                         //*Find the corners for the structure that might be valid
                         List<BlockPos> cornersFixedSize = findCornersFixedSize(placedBlock, w, pos, currentSize, data);
                         //*If there are no corners available, check another size
-                        cornersFixedSize.removeIf(corner -> !computeIfValid(data, corner, w, currentSize));
+                        cornersFixedSize.removeIf(corner -> !computeIfValid(w, data, corner, currentSize));
                         if (cornersFixedSize.isEmpty()) continue;
+                        //*We found a corner, so we're spawning the structure
                         BlockPos corner = cornersFixedSize.get(0);
-                        spawnStructure(w, corner, data, currentSize);
+                        spawnStructure(w, data, corner, currentSize);
                         return true;
                     }
-                    //*Not sizematching so any xsize can occur with any y or z size. So we need to check every possible combination
+                    //*Not size-matching so any x-size can occur with any y or z size. So we need to check every possible combination
                 } else {
                     for (int curXSize : data.xSizes) {
                         for (int curYSize : data.ySizes) {
@@ -67,11 +76,11 @@ public class StructureCheckMain {
                                 //*Find the corners for the structure that might be valid
                                 List<BlockPos> cornersFixedSize = findCornersFixedSize(placedBlock, w, pos, currentSize, data);
                                 //*Remove the corner if it cannot be validated
-                                cornersFixedSize.removeIf(corner -> !computeIfValid(data, corner, w, currentSize));
+                                cornersFixedSize.removeIf(corner -> !computeIfValid(w, data, corner, currentSize));
                                 //*If there are no corners available, check another size
                                 if (cornersFixedSize.isEmpty()) continue;
                                 BlockPos corner = cornersFixedSize.get(0);
-                                spawnStructure(w, corner, data, currentSize);
+                                spawnStructure(w, data, corner, currentSize);
                                 return true;
                             }
                         }
@@ -83,29 +92,32 @@ public class StructureCheckMain {
     }
 
     /**
-     * @param data   The MultiblockStructureData of the Structure that we want to check
-     * @param corner The Corner Block of the Structure. This is the lowest value Blockpos of x,y,z in the Structure
-     * @param world  The Serverworld this check is performed on
+     * @param world  The {@link ServerWorld} this check is performed on
+     * @param data   The {@link MultiBlockData} of the {@link AbstractMBStructure} that we want to check
+     * @param corner The Corner {@link Block} of the Structure. This is the lowest value {@link BlockPos} of x,y,z in the {@link AbstractMBStructure}
      * @param size   The Size that is to Check
      * @return True if the Structure is valid
      */
-    public static boolean computeIfValid(MultiBlockData data, BlockPos corner, World world, BlockPos size) {
-        MbCheckTask BOTTOM = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.BOTTOM, size);
-        MbCheckTask TOP = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.TOP, size);
-        MbCheckTask FRAME = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.FRAME, size);
-        MbCheckTask INSIDE = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.INSIDE, size);
-        MbCheckTask SIDE = new MbCheckTask(data, corner, world, MbCheckTask.ECalculationStep.SIDE, size);
-
-        try {
-            System.out.println("Bottom : " + BOTTOM.call() + " Top : " + TOP.call() + " Frame : " + FRAME.call() + " Inside : " + INSIDE.call() + " SIDE : " + SIDE.call());
-            return BOTTOM.call() && TOP.call() && FRAME.call() && SIDE.call() && INSIDE.call();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return false;
+    public static boolean computeIfValid(ServerWorld world, @Nonnull MultiBlockData data, @Nonnull BlockPos corner, @Nonnull BlockPos size) {
+        BlockPos diagonalBlock = corner.offset(size.getX() - 1, 0, size.getZ() - 1);
+        StructureConfig config = data.config;
+        Map<ECalculationStep, List<Block>> stepToBlockMap = new HashMap<>();
+        for (ECalculationStep step : ECalculationStep.values())
+            stepToBlockMap.computeIfAbsent(step, config::getBlocknamesByStep);
+        return StructureCheckMain.validateFixedSizeFrame(world, data, corner, size, stepToBlockMap.get(ECalculationStep.FRAME), diagonalBlock) &&
+                StructureCheckMain.validateTopFixedSize(world, data, corner, size, stepToBlockMap.get(ECalculationStep.TOP), diagonalBlock) &&
+                StructureCheckMain.validateBottomFixedSize(world, data, corner, size, stepToBlockMap.get(ECalculationStep.BOTTOM), diagonalBlock) &&
+                StructureCheckMain.validateFacesFixedSize(world, data, corner, size, stepToBlockMap.get(ECalculationStep.SIDE), diagonalBlock) &&
+                StructureCheckMain.validateInsideFixedSize(world, data, corner, size, stepToBlockMap.get(ECalculationStep.INSIDE), diagonalBlock);
     }
 
-    public static void spawnStructure(World world, BlockPos pos, MultiBlockData data, BlockPos size) {
+    /**
+     * @param world The {@link ServerWorld} this check is performed on
+     * @param data  The {@link MultiBlockData} of the {@link AbstractMBStructure} that we want to check
+     * @param pos   The {@link BlockPos} the {@link AbstractMBStructure} shall be spawned at
+     * @param size  The Size of the Structure we spawn in
+     */
+    public static void spawnStructure(ServerWorld world, @Nonnull MultiBlockData data, BlockPos pos, BlockPos size) {
         AbstractMBStructure structure;
         try {
             structure = (AbstractMBStructure) data.structure.newInstance();
@@ -114,45 +126,54 @@ public class StructureCheckMain {
             structure.setBlocksValid(world);
             structure.setData(data);
             if (structure.hasBlockEntity()) {
-                structure.setTileIntoWorld(world, pos, structure);
+                world.setBlock(pos, world.getBlockState(pos).setValue(MultiBlockSuper.isCorner, true), 3);
             }
         } catch (IllegalAccessException | InstantiationException e) {
             e.printStackTrace();
             throw new NullPointerException("Structure is Null");
         }
-        if (world instanceof ServerWorld) {
-            StructureSave.putStructure(structure, (ServerWorld) world);
-        }
+        StructureSave.putStructure(structure, world);
     }
 
     public static final HashSet<Chunk> CHUNKS = new HashSet<>();
     public static Chunk currentChunk = null;
 
-    public static boolean validateFixedSizeFrame(BlockPos corner, World world, MultiBlockData data, BlockPos size, List<String> blockNames, BlockPos diagonalBlock) {
+    /**
+     * @param world         The {@link ServerWorld} this check is performed on.
+     * @param data          The {@link MultiBlockData} of the {@link AbstractMBStructure} that we want to check.
+     * @param corner        The corner of the Structure.
+     * @param size          The size of the Structure.
+     * @param blockList     The List of all valid {@link Block} singletons for this {@link AbstractMBStructure}.
+     * @param diagonalBlock The {@link BlockPos} diagonally opposite of the corner.
+     * @return True if the Frame of the Structure is Valid.
+     */
+    public static boolean validateFixedSizeFrame(ServerWorld world, MultiBlockData data, BlockPos corner, @Nonnull BlockPos size, List<Block> blockList, BlockPos diagonalBlock) {
         //* Check for Bottom and Top Layer in x Direction (There will be overlap)
         for (int x = 0; x < size.getX(); ++x) {
-            if (checkBlockNames(blockNames, world, corner.offset(x, 0, 0)) || checkBlockNames(blockNames, world, corner.offset(x, size.getY() - 1, 0)) || checkBlockNames(blockNames, world, diagonalBlock.offset(-x, 0, 0)) || checkBlockNames(blockNames, world, diagonalBlock.offset(-x, size.getY() - 1, 0))) {
-                return false;
-            }
+            if (checkBlockNames(blockList, world, corner.offset(x, 0, 0))) return false;
+            if (checkBlockNames(blockList, world, corner.offset(x, size.getY() - 1, 0))) return false;
+            if (checkBlockNames(blockList, world, diagonalBlock.offset(-x, 0, 0))) return false;
+            if (checkBlockNames(blockList, world, diagonalBlock.offset(-x, size.getY() - 1, 0))) return false;
         }
         //* Check for Bottom and Top Layer in Z Direction (There will be overlap)
         for (int z = 0; z < size.getZ(); ++z) {
-            if (checkBlockNames(blockNames, world, corner.offset(0, 0, z)) || checkBlockNames(blockNames, world, corner.offset(0, size.getY() - 1, z)) || checkBlockNames(blockNames, world, diagonalBlock.offset(0, 0, -z)) || checkBlockNames(blockNames, world, diagonalBlock.offset(0, size.getY() - 1, -z))) {
-                return false;
-            }
+            if (checkBlockNames(blockList, world, corner.offset(0, 0, z))) return false;
+            if (checkBlockNames(blockList, world, corner.offset(0, size.getY() - 1, z))) return false;
+            if (checkBlockNames(blockList, world, diagonalBlock.offset(0, 0, -z))) return false;
+            if (checkBlockNames(blockList, world, diagonalBlock.offset(0, size.getY() - 1, -z))) return false;
         }
         //*Check the outer Frame for possible mismatches
         for (int y = 1; y < size.getY() - 2; ++y) {
-            if (checkBlockNames(blockNames, world, corner.offset(0, y, 0)) || checkBlockNames(blockNames, world, diagonalBlock.offset(0, y, 0)) || checkBlockNames(blockNames, world, corner.offset(size.getX() - 1, y, 0)) || checkBlockNames(blockNames, world, corner.offset(0, y, size.getZ() - 1))) {
-                return false;
-            }
+            if (checkBlockNames(blockList, world, corner.offset(0, y, 0))) return false;
+            if (checkBlockNames(blockList, world, diagonalBlock.offset(0, y, 0))) return false;
+            if (checkBlockNames(blockList, world, corner.offset(size.getX() - 1, y, 0))) return false;
+            if (checkBlockNames(blockList, world, corner.offset(0, y, size.getZ() - 1))) return false;
         }
         return true;
 
     }
 
-    //this should also work for rectangular structures now with the new Checks in Place.Doing this Part by Part reduces time spent with useless calculations
-    public static boolean validateFacesFixedSize(BlockPos corner, World world, MultiBlockData data, @Nonnull BlockPos size, List<String> blockNames, BlockPos diagonalBlock) {
+    public static boolean validateFacesFixedSize(ServerWorld world, MultiBlockData data, BlockPos corner, @Nonnull BlockPos size, List<Block> blockNames, BlockPos diagonalBlock) {
         for (int y = 1; y < size.getY() - 1; ++y) {
             for (int x = 1; x < size.getX() - 1; ++x) {
                 if (checkBlockNames(blockNames, world, corner.offset(x, y, 0)) || checkBlockNames(blockNames, world, diagonalBlock.offset(-x, y, 0))) {
@@ -168,7 +189,7 @@ public class StructureCheckMain {
         return true;
     }
 
-    public static boolean validateInsideFixedSize(BlockPos corner, World world, MultiBlockData data, BlockPos size, List<String> blockNames, BlockPos diagonalBlock) {
+    public static boolean validateInsideFixedSize(ServerWorld world, MultiBlockData data, BlockPos corner, BlockPos size, List<Block> blockNames, BlockPos diagonalBlock) {
         if (data.isHollow) {
             BlockPos offsetCorner = corner.offset(1, 1, 1);
             for (int i = 0; i < size.getX() - 2; ++i) {
@@ -188,7 +209,7 @@ public class StructureCheckMain {
         }
     }
 
-    public static boolean validateTopFixedSize(BlockPos corner, World world, MultiBlockData data, BlockPos size, List<String> blockNames, BlockPos diagonalBlock) {
+    public static boolean validateTopFixedSize(ServerWorld world, MultiBlockData data, BlockPos corner, BlockPos size, List<Block> blockNames, BlockPos diagonalBlock) {
         BlockPos offsetCorner = corner.offset(1, size.getY() - 1, 1);
         for (int i = 0; i < size.getX() - 2; ++i) {
             for (int j = 0; j < size.getZ() - 2; ++j) {
@@ -200,7 +221,8 @@ public class StructureCheckMain {
         return true;
     }
 
-    public static boolean validateBottomFixedSize(BlockPos corner, World world, MultiBlockData data, BlockPos size, List<String> blockNames, BlockPos diagonalBlock) {
+
+    public static boolean validateBottomFixedSize(ServerWorld world, MultiBlockData data, BlockPos corner, BlockPos size, List<Block> blockNames, BlockPos diagonalBlock) {
         BlockPos offsetCorner = corner.offset(1, 0, 1);
         for (int i = 0; i < size.getX() - 2; ++i) {
             for (int j = 0; j < size.getZ() - 2; ++j) {
@@ -212,19 +234,18 @@ public class StructureCheckMain {
         return true;
     }
 
-    public static List<BlockPos> findCornersFixedSize(Block block, World world, BlockPos pos, BlockPos size, MultiBlockData data) {
+    public static List<BlockPos> findCornersFixedSize(Block block, ServerWorld world, BlockPos pos, BlockPos size, MultiBlockData data) {
         List<BlockPos> posList = new ArrayList<>();
-        List<String> blockNames = new ArrayList<>(data.config.BLOCKKEYS.values());
-        if (blockNames.stream().noneMatch(k -> k.equals(block.getRegistryName().toString()))) return posList;
+        List<Block> blockList = data.config.getBlockNamesAsBlocks();
+        if (blockList.stream().noneMatch(block::is)) return posList;
         for (int x = 0; x < size.getX(); x++) {
             for (int y = 0; y < size.getY(); y++) {
                 for (int z = 0; z < size.getZ(); z++) {
                     BlockPos newPos = pos.offset(-x, -y, -z);
                     Block posBlock = world.getBlockState(newPos).getBlock();
                     Block diagonalOpposite = world.getBlockState(newPos.offset(size.getX() - 1, size.getY() - 1, size.getZ() - 1)).getBlock();
-                    if (blockNames.stream().anyMatch(s -> s.equals(posBlock.getRegistryName().toString())) && blockNames.stream().anyMatch(s -> s.equals(diagonalOpposite.getRegistryName().toString()))) {
+                    if (blockList.stream().anyMatch(posBlock::is) && blockList.stream().anyMatch(diagonalOpposite::is))
                         posList.add(pos.offset(-x, -y, -z));
-                    }
                 }
             }
         }
@@ -232,41 +253,46 @@ public class StructureCheckMain {
     }
 
     /**
-     * Checks if the Block is actually in the List supplied
+     * Checks if the {@link Block} at the {@link BlockPos} is actually in the List supplied
      *
      * @param blockNames List of valid Blocknames for the Step we want to Check
-     * @param w          World
-     * @param checkPos   The Pos to Check
-     * @return True if the NONE of the Blocknames match the given Block
+     * @param serverWorld The {@link ServerWorld} this check is performed
+     * @param checkPos   The {@link BlockPos} we want to check
+     * @return True if NONE of the Blocknames match the given {@link Block}
      */
-    private static boolean checkBlockNames(List<String> blockNames, World w, BlockPos checkPos) {
-        AtomicReference<Block> posBlock = new AtomicReference<>();
-        //*Checks if the CurrentChunk is null
+    private static boolean checkBlockNames(List<Block> blockNames, ServerWorld serverWorld, BlockPos checkPos) {
+        Block posBlock;
+        //*Checks if the CurrentChunk is null, and if it is, sets a new one
         if (currentChunk == null) {
-            currentChunk = w.getChunkAt(checkPos);
+            currentChunk = serverWorld.getChunkAt(checkPos);
             CHUNKS.add(currentChunk);
-            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
             //*Checks if the currentChunk is the Chunk we currently Check in
         } else if (currentChunk.getPos().x == checkPos.getX() >> 4 && currentChunk.getPos().z == checkPos.getZ() >> 4) {
-            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
+            posBlock = currentChunk.getBlockState(checkPos).getBlock();
+            return blockNames.stream().noneMatch(posBlock::is);
             //*Checks if we have the Chunk Cached
         } else if (CHUNKS.parallelStream().anyMatch(k -> (k.getPos().x == checkPos.getX() >> 4) && k.getPos().z == checkPos.getZ() >> 4)) {
-            CHUNKS.parallelStream().filter(k -> k.getPos().x == checkPos.getX() >> 4 && k.getPos().z == checkPos.getZ() >> 4).findFirst().ifPresent(chunk -> {
-                currentChunk = chunk;
-                posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
-            });
+            CHUNKS.parallelStream().filter(k -> k.getPos().x == checkPos.getX() >> 4 && k.getPos().z == checkPos.getZ() >> 4).findFirst().ifPresent(chunk -> currentChunk = chunk);
             //*We dont have the Chunk cached. Nor is the currentChunk null, so we need to get the Chunk from the World and save it.
         } else {
-            currentChunk = (Chunk) w.getChunk(checkPos);
+            currentChunk = (Chunk) serverWorld.getChunk(checkPos);
             CHUNKS.add(currentChunk);
-            posBlock.set(currentChunk.getBlockState(checkPos).getBlock());
         }
-        Block finalPosBlock = posBlock.get();
+        posBlock = currentChunk.getBlockState(checkPos).getBlock();
         //*If the Block we try to check here is null, that means it is unloaded, which is an illegal State
-        if (finalPosBlock == null) {
-            throw new IllegalStateException("Posblock is null.Expected a Block to never be null");
+        return blockNames.stream().noneMatch(posBlock::is);
+    }
+
+    public enum ECalculationStep {
+        TOP("top"),
+        BOTTOM("bottom"),
+        FRAME("frame"),
+        SIDE("face"),
+        INSIDE("inside");
+        public final String name;
+
+        ECalculationStep(String name) {
+            this.name = name;
         }
-        //*Return true if none of the Names match
-        return blockNames.stream().noneMatch(s -> s.equals(finalPosBlock.getRegistryName().toString()));
     }
 }
